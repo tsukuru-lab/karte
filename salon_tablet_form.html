@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>カルテフォーム</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: #f8f8f6; color: #2C2C2A; min-height: 100vh; }
+  .wrap { max-width: 600px; margin: 0 auto; padding: 20px 16px 60px; }
+  .header { text-align: center; padding: 24px 16px 20px; background: white; border-radius: 16px; margin-bottom: 16px; border: 1px solid #e8e8e4; }
+  .header h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .header p { font-size: 14px; color: #5F5E5A; }
+  .memo-box { background: #E1F5EE; border-radius: 10px; padding: 10px 14px; margin-top: 12px; font-size: 13px; color: #085041; line-height: 1.7; text-align: left; }
+  .memo-box span { font-weight: 700; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab { flex: 1; padding: 12px 6px; font-size: 13px; font-weight: 700; text-align: center; border-radius: 12px; border: 1px solid #e0e0da; background: white; color: #888780; cursor: pointer; transition: all 0.15s; }
+  .tab.active { background: #E1F5EE; border-color: #1D9E75; color: #085041; }
+  .tab i { display: block; font-size: 22px; margin-bottom: 4px; }
+  .progress { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #D3D1C7; transition: background 0.2s; }
+  .dot.done { background: #1D9E75; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: white; border-radius: 14px; padding: 20px 16px; margin-bottom: 12px; border: 1px solid #e8e8e4; }
+  .q-label { font-size: 14px; font-weight: 700; color: #2C2C2A; margin-bottom: 4px; }
+  .q-sub { font-size: 12px; color: #888780; margin-bottom: 12px; line-height: 1.6; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 10px 16px; font-size: 15px; border-radius: 24px; border: 1px solid #D3D1C7; background: white; color: #2C2C2A; cursor: pointer; user-select: none; transition: all 0.12s; -webkit-user-select: none; }
+  .chip.sel-teal   { background: #E1F5EE; border-color: #1D9E75; color: #085041; font-weight: 700; }
+  .chip.sel-coral  { background: #FAECE7; border-color: #D85A30; color: #712B13; font-weight: 700; }
+  .chip.sel-purple { background: #EEEDFE; border-color: #7F77DD; color: #3C3489; font-weight: 700; }
+  .chip.sel-amber  { background: #FAEEDA; border-color: #BA7517; color: #633806; font-weight: 700; }
+  .chip.sel-gray   { background: #F1EFE8; border-color: #888780; color: #444441; font-weight: 700; }
+  .name-display { font-size: 18px; font-weight: 700; color: #2C2C2A; background: #f8f8f6; border-radius: 10px; padding: 12px 16px; margin-bottom: 6px; }
+  .name-note { font-size: 12px; color: #888780; }
+  .footer-nav { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; margin-top: 4px; border-top: 1px solid #f0f0ec; }
+  .btn-next { padding: 14px 32px; font-size: 16px; font-weight: 700; border-radius: 12px; background: #1D9E75; color: white; border: none; cursor: pointer; }
+  .btn-next:active { background: #0F6E56; transform: scale(0.97); }
+  .btn-back { padding: 14px 20px; font-size: 14px; color: #888780; background: white; border: 1px solid #D3D1C7; border-radius: 12px; cursor: pointer; }
+  .complete { text-align: center; padding: 40px 20px; background: white; border-radius: 16px; border: 1px solid #e8e8e4; }
+  .complete-icon { font-size: 56px; color: #1D9E75; margin-bottom: 16px; }
+  .complete h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .complete p { font-size: 14px; color: #5F5E5A; line-height: 1.7; }
+  .complete .summary { background: #f8f8f6; border-radius: 10px; padding: 14px 16px; margin-top: 20px; font-size: 13px; color: #5F5E5A; line-height: 2.0; text-align: left; }
+  .sending { font-size: 14px; color: #888780; margin-top: 12px; }
+  .error-msg { color: #D85A30; font-size: 13px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1 id="welcome-title">ようこそ！</h1>
+    <p>今日もよろしくお願いします</p>
+    <div class="memo-box" id="memo-box" style="display:none;">
+      <span>前回のメモ：</span><span id="memo-text"></span>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-tab="0"><i>🧑</i>基本</div>
+    <div class="tab" data-tab="1"><i>✂️</i>スタイル</div>
+    <div class="tab" data-tab="2"><i>😊</i>今日の気分</div>
+  </div>
+  <div class="progress">
+    <div class="dot done" id="dot0"></div>
+    <div class="dot" id="dot1"></div>
+    <div class="dot" id="dot2"></div>
+  </div>
+  <div class="panel active" id="panel0">
+    <div class="card">
+      <div class="q-label">お名前の確認</div>
+      <div class="name-display" id="name-display">田中 花子</div>
+      <div class="name-note">違う方はスタッフにお声がけください</div>
+    </div>
+    <div class="card">
+      <div class="q-label">前回からどのくらいたちますか？</div>
+      <div class="chips">
+        <div class="chip" data-group="interval" data-single="true" data-color="teal">1ヶ月以内</div>
+        <div class="chip" data-group="interval" data-single="true" data-color="teal">2〜3ヶ月</div>
+        <div class="chip" data-group="interval" data-single="true" data-color="teal">半年くらい</div>
+        <div class="chip" data-group="interval" data-single="true" data-color="teal">初めて</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="q-label">頭皮・髪の状態</div>
+      <div class="q-sub">当てはまるものすべて選んでください</div>
+      <div class="chips">
+        <div class="chip" data-group="scalp" data-color="teal">乾燥しやすい</div>
+        <div class="chip" data-group="scalp" data-color="teal">脂っぽい</div>
+        <div class="chip" data-group="scalp" data-color="teal">くせ毛</div>
+        <div class="chip" data-group="scalp" data-color="teal">細い・柔らかい</div>
+        <div class="chip" data-group="scalp" data-color="teal">傷みが気になる</div>
+        <div class="chip" data-group="scalp" data-color="teal">特になし</div>
+      </div>
+    </div>
+    <div class="footer-nav">
+      <div></div>
+      <button class="btn-next" onclick="goTo(1)">次へ →</button>
+    </div>
+  </div>
+  <div class="panel" id="panel1">
+    <div class="card">
+      <div class="q-label">今日やりたいこと</div>
+      <div class="q-sub">複数選べます</div>
+      <div class="chips">
+        <div class="chip" data-group="menu" data-color="purple">カット</div>
+        <div class="chip" data-group="menu" data-color="purple">カラー</div>
+        <div class="chip" data-group="menu" data-color="purple">パーマ</div>
+        <div class="chip" data-group="menu" data-color="purple">トリートメント</div>
+        <div class="chip" data-group="menu" data-color="purple">シャンプーのみ</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="q-label">長さの希望</div>
+      <div class="chips">
+        <div class="chip" data-group="length" data-single="true" data-color="purple">かなり短く</div>
+        <div class="chip" data-group="length" data-single="true" data-color="purple">少し短く</div>
+        <div class="chip" data-group="length" data-single="true" data-color="purple">そろえる程度</div>
+        <div class="chip" data-group="length" data-single="true" data-color="purple">長さはそのまま</div>
+        <div class="chip" data-group="length" data-single="true" data-color="purple">おまかせ</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="q-label">前回の仕上がりはどうでしたか？</div>
+      <div class="chips">
+        <div class="chip" data-group="prev" data-single="true" data-color="coral">満足だった</div>
+        <div class="chip" data-group="prev" data-single="true" data-color="coral">少し違った</div>
+        <div class="chip" data-group="prev" data-single="true" data-color="coral">イメージと違った</div>
+        <div class="chip" data-group="prev" data-single="true" data-color="coral">初めて</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="q-label">今回とくに伝えたいこと</div>
+      <div class="q-sub">複数選べます</div>
+      <div class="chips">
+        <div class="chip" data-group="note" data-color="coral">画像を持参した</div>
+        <div class="chip" data-group="note" data-color="coral">前回と同じでOK</div>
+        <div class="chip" data-group="note" data-color="coral">少し変化がほしい</div>
+        <div class="chip" data-group="note" data-color="coral">大きく変えたい</div>
+        <div class="chip" data-group="note" data-color="coral">相談しながら決めたい</div>
+      </div>
+    </div>
+    <div class="footer-nav">
+      <button class="btn-back" onclick="goTo(0)">← 戻る</button>
+      <button class="btn-next" onclick="goTo(2)">次へ →</button>
+    </div>
+  </div>
+  <div class="panel" id="panel2">
+    <div class="card">
+      <div class="q-label">会話はどのくらいしたいですか？</div>
+      <div class="chips">
+        <div class="chip" data-group="talk" data-single="true" data-color="amber">たくさん話したい</div>
+        <div class="chip" data-group="talk" data-single="true" data-color="amber">適度に</div>
+        <div class="chip" data-group="talk" data-single="true" data-color="amber">静かに過ごしたい</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="q-label">動画・音楽はどうしますか？</div>
+      <div class="chips">
+        <div class="chip" data-group="media" data-single="true" data-color="amber" data-show="content-card">見たい・聴きたい</div>
+        <div class="chip" data-group="media" data-single="true" data-color="amber" data-hide="content-card">静かにしたい</div>
+        <div class="chip" data-group="media" data-single="true" data-color="amber" data-hide="content-card">おまかせ</div>
+      </div>
+    </div>
+    <div class="card" id="content-card" style="display:none;">
+      <div class="q-label">見たいジャンルは？</div>
+      <div class="q-sub">複数選べます</div>
+      <div class="chips">
+        <div class="chip" data-group="content" data-color="amber">美容・ヘアスタイル</div>
+        <div class="chip" data-group="content" data-color="amber">旅行・グルメ</div>
+        <div class="chip" data-group="content" data-color="amber">音楽</div>
+        <div class="chip" data-group="content" data-color="amber">ニュース</div>
+        <div class="chip" data-group="content" data-color="amber">なんでも</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="q-label">今日の体調は？</div>
+      <div class="chips">
+        <div class="chip" data-group="condition" data-single="true" data-color="teal">元気！</div>
+        <div class="chip" data-group="condition" data-single="true" data-color="teal">普通</div>
+        <div class="chip" data-group="condition" data-single="true" data-color="teal">少し疲れ気味</div>
+        <div class="chip" data-group="condition" data-single="true" data-color="teal">ゆっくりしたい</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="q-label">前回の話、その後どうなりましたか？</div>
+      <div class="q-sub">聞かせてもらえたら嬉しいです。もちろん今日はそっとしておいてもOKです。</div>
+      <div class="chips">
+        <div class="chip" data-group="topic" data-color="teal">子どものこと</div>
+        <div class="chip" data-group="topic" data-color="teal">仕事・職場のこと</div>
+        <div class="chip" data-group="topic" data-color="teal">旅行・お出かけのこと</div>
+        <div class="chip" data-group="topic" data-color="teal">趣味のこと</div>
+        <div class="chip" data-group="topic" data-color="teal">今日は別の話で</div>
+        <div class="chip" data-group="topic" data-color="gray">今日はそっとしておいて</div>
+      </div>
+    </div>
+    <div class="footer-nav">
+      <button class="btn-back" onclick="goTo(1)">← 戻る</button>
+      <button class="btn-next" onclick="submitForm()">完了</button>
+    </div>
+  </div>
+  <div class="panel" id="panel-complete">
+    <div class="complete">
+      <div class="complete-icon">✅</div>
+      <h2 id="complete-name">ありがとうございます！</h2>
+      <p>内容を確認してスタッフがご案内します。<br>少しお待ちください。</p>
+      <div class="sending" id="sending-msg">送信中...</div>
+      <div class="error-msg" id="error-msg" style="display:none;">送信に失敗しました。スタッフにお声がけください。</div>
+      <div class="summary" id="summary"></div>
+    </div>
+  </div>
+</div>
+<script>
+  // ★ここにGASのURLを貼り付けてください
+const GAS_URL = 'https://script.google.com/macros/s/AKfycby-7pyNk6IeqaB7n5EoCh9d2LwiXjTkWQpvZkJ88DoWThnm3mWXKe1vXD4lBlzRsg5u/exec';
+  const customerData = {
+    name: '田中 花子',
+    memo: 'カラーはもう少し明るめがご希望でした。前回は運動会の話で盛り上がりました。'
+  };
+
+  document.getElementById('welcome-title').textContent = customerData.name + 'さん、おかえりなさい！';
+  document.getElementById('name-display').textContent = customerData.name;
+  if (customerData.memo) {
+    document.getElementById('memo-text').textContent = customerData.memo;
+    document.getElementById('memo-box').style.display = 'block';
+  }
+
+  const selections = {};
+
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+      const group = this.dataset.group;
+      const color = this.dataset.color || 'teal';
+      const cls = 'sel-' + color;
+      const isSingle = this.dataset.single === 'true';
+      if (isSingle) {
+        document.querySelectorAll('[data-group="' + group + '"]').forEach(c => {
+          c.classList.remove('sel-teal','sel-coral','sel-amber','sel-purple','sel-gray');
+        });
+        this.classList.add(cls);
+        selections[group] = [this.textContent.trim()];
+        const show = this.dataset.show;
+        const hide = this.dataset.hide;
+        if (show) document.getElementById(show).style.display = 'block';
+        if (hide) document.getElementById(hide).style.display = 'none';
+        if (group === 'media' && this.dataset.hide) {
+          document.getElementById('content-card').style.display = 'none';
+        }
+      } else {
+        if (this.classList.contains(cls)) {
+          this.classList.remove(cls);
+          if (selections[group]) selections[group] = selections[group].filter(v => v !== this.textContent.trim());
+        } else {
+          this.classList.add(cls);
+          if (!selections[group]) selections[group] = [];
+          selections[group].push(this.textContent.trim());
+        }
+      }
+    });
+  });
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      goTo(parseInt(this.dataset.tab));
+    });
+  });
+
+  function goTo(n) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel' + n).classList.add('active');
+    document.querySelector('[data-tab="' + n + '"]').classList.add('active');
+    for (let i = 0; i < 3; i++) {
+      document.getElementById('dot' + i).classList.toggle('done', i <= n);
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function submitForm() {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-complete').classList.add('active');
+    document.getElementById('complete-name').textContent = 'ありがとうございます、' + customerData.name.split(' ')[0] + 'さん！';
+    const lines = [
+      selections.interval   ? '前回から：' + selections.interval[0] : '',
+      selections.scalp && selections.scalp.length   ? '髪の状態：' + selections.scalp.join('・') : '',
+      selections.menu && selections.menu.length     ? 'メニュー：' + selections.menu.join('・') : '',
+      selections.length     ? '長さ：' + selections.length[0] : '',
+      selections.prev       ? '前回満足度：' + selections.prev[0] : '',
+      selections.note && selections.note.length     ? '伝えたいこと：' + selections.note.join('・') : '',
+      selections.talk       ? '会話：' + selections.talk[0] : '',
+      selections.media      ? '動画・音楽：' + selections.media[0] : '',
+      selections.content && selections.content.length ? 'ジャンル：' + selections.content.join('・') : '',
+      selections.condition  ? '体調：' + selections.condition[0] : '',
+      selections.topic && selections.topic.length   ? '前回の話：' + selections.topic.join('・') : '',
+    ].filter(Boolean);
+    document.getElementById('summary').innerHTML = lines.join('<br>');
+    const payload = {
+      name:      customerData.name,
+      interval:  (selections.interval  || []).join('・'),
+      scalp:     (selections.scalp     || []).join('・'),
+      menu:      (selections.menu      || []).join('・'),
+      length:    (selections.length    || []).join('・'),
+      prev:      (selections.prev      || []).join('・'),
+      note:      (selections.note      || []).join('・'),
+      talk:      (selections.talk      || []).join('・'),
+      media:     (selections.media     || []).join('・'),
+      content:   (selections.content   || []).join('・'),
+      condition: (selections.condition || []).join('・'),
+      topic:     (selections.topic     || []).join('・'),
+    };
+    fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(() => {
+      document.getElementById('sending-msg').textContent = '✓ 送信完了';
+      document.getElementById('sending-msg').style.color = '#1D9E75';
+    })
+    .catch(() => {
+      document.getElementById('sending-msg').style.display = 'none';
+      document.getElementById('error-msg').style.display = 'none';
+    });
+  }
+</script>
+</body>
+</html>
